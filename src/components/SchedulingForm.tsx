@@ -1,10 +1,35 @@
-
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Progress } from '@/components/ui/progress';
-import { CheckCircle2, Clock, Calendar, ArrowRight, ArrowLeft } from 'lucide-react';
+import { 
+  CheckCircle2, 
+  Clock, 
+  Calendar, 
+  ArrowRight, 
+  ArrowLeft, 
+  Briefcase,
+  TrendingUp,
+  Users,
+  DollarSign,
+  Code,
+  Target,
+  Search,
+  BarChart3,
+  Laptop,
+  Database,
+  Settings,
+  Calculator,
+  PieChart,
+  Shield,
+  Sun,
+  Sunset,
+  Moon,
+  Star,
+  Award,
+  BookOpen
+} from 'lucide-react';
 
 interface FormData {
   industry: string;
@@ -15,11 +40,50 @@ interface FormData {
 }
 
 const industries = [
-  { id: 'marketing', name: 'Marketing', subcategories: ['Digital Marketing', 'Content Strategy', 'SEO/SEM', 'Social Media'] },
-  { id: 'sales', name: 'Sales', subcategories: ['B2B Sales', 'Customer Success', 'Lead Generation', 'Sales Operations'] },
-  { id: 'tech', name: 'Technology', subcategories: ['Software Development', 'Product Management', 'Data Science', 'DevOps'] },
-  { id: 'finance', name: 'Finance', subcategories: ['Financial Planning', 'Investment', 'Accounting', 'Risk Management'] }
+  { 
+    id: 'marketing', 
+    name: 'Marketing', 
+    icon: TrendingUp,
+    subcategories: ['Digital Marketing', 'Content Strategy', 'SEO/SEM', 'Social Media'] 
+  },
+  { 
+    id: 'sales', 
+    name: 'Sales', 
+    icon: Target,
+    subcategories: ['B2B Sales', 'Customer Success', 'Lead Generation', 'Sales Operations'] 
+  },
+  { 
+    id: 'tech', 
+    name: 'Technology', 
+    icon: Code,
+    subcategories: ['Software Development', 'Product Management', 'Data Science', 'DevOps'] 
+  },
+  { 
+    id: 'finance', 
+    name: 'Finance', 
+    icon: DollarSign,
+    subcategories: ['Financial Planning', 'Investment', 'Accounting', 'Risk Management'] 
+  }
 ];
+
+const focusIcons: { [key: string]: React.ComponentType<any> } = {
+  'Digital Marketing': Search,
+  'Content Strategy': BookOpen,
+  'SEO/SEM': BarChart3,
+  'Social Media': Users,
+  'B2B Sales': Briefcase,
+  'Customer Success': Award,
+  'Lead Generation': Target,
+  'Sales Operations': Settings,
+  'Software Development': Code,
+  'Product Management': Laptop,
+  'Data Science': Database,
+  'DevOps': Settings,
+  'Financial Planning': Calculator,
+  'Investment': PieChart,
+  'Accounting': Calculator,
+  'Risk Management': Shield
+};
 
 const timeSlots = [
   '9:00 AM - 10:00 AM',
@@ -29,6 +93,12 @@ const timeSlots = [
   '3:00 PM - 4:00 PM',
   '4:00 PM - 5:00 PM'
 ];
+
+const timePreferenceIcons = {
+  'Morning (9AM - 12PM)': Sun,
+  'Afternoon (12PM - 5PM)': Sunset,
+  'Evening (5PM - 8PM)': Moon
+};
 
 const mockSessions = [
   {
@@ -112,9 +182,13 @@ const SchedulingForm = () => {
       <div className="min-h-screen bg-white p-6 flex items-center justify-center">
         <div className="w-full max-w-4xl">
           <div className="text-center mb-12">
-            <h1 className="text-4xl font-light mb-4 text-black">
-              Your Sessions
-            </h1>
+            <div className="flex items-center justify-center gap-3 mb-4">
+              <Star className="w-8 h-8 text-black" />
+              <h1 className="text-4xl font-light text-black">
+                Your Sessions
+              </h1>
+              <Star className="w-8 h-8 text-black" />
+            </div>
             <p className="text-gray-500 text-lg">
               Curated based on your preferences
             </p>
@@ -126,12 +200,19 @@ const SchedulingForm = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-4 mb-3">
+                      <BookOpen className="w-6 h-6 text-gray-400" />
                       <h3 className="text-2xl font-light">{session.title}</h3>
-                      <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
-                        {session.matchScore}% MATCH
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <Award className="w-4 h-4 text-gray-400" />
+                        <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
+                          {session.matchScore}% MATCH
+                        </span>
+                      </div>
                     </div>
-                    <p className="text-gray-500 mb-4">with {session.instructor}</p>
+                    <div className="flex items-center gap-2 mb-4">
+                      <Users className="w-4 h-4 text-gray-400" />
+                      <p className="text-gray-500">with {session.instructor}</p>
+                    </div>
                     <div className="flex items-center gap-6 text-sm text-gray-500 mb-6">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4" />
@@ -151,6 +232,7 @@ const SchedulingForm = () => {
                     </div>
                   </div>
                   <Button className="minimal-button px-8 py-2 rounded">
+                    <Calendar className="w-4 h-4 mr-2" />
                     Book Session
                   </Button>
                 </div>
@@ -177,9 +259,12 @@ const SchedulingForm = () => {
     <div className="min-h-screen bg-white p-6 flex items-center justify-center">
       <div className="w-full max-w-2xl">
         <div className="text-center mb-12">
-          <h1 className="text-4xl font-light mb-4 text-black">
-            Find Your Session
-          </h1>
+          <div className="flex items-center justify-center gap-3 mb-4">
+            <Search className="w-8 h-8 text-black" />
+            <h1 className="text-4xl font-light text-black">
+              Find Your Session
+            </h1>
+          </div>
           <p className="text-gray-500 text-lg">
             Answer a few questions to get matched
           </p>
@@ -220,21 +305,30 @@ const SchedulingForm = () => {
           {/* Step 1: Industry Selection */}
           {currentStep === 1 && (
             <div>
-              <h3 className="text-2xl font-light mb-8 text-center">What industry are you in?</h3>
+              <div className="flex items-center justify-center gap-3 mb-8">
+                <Briefcase className="w-6 h-6 text-gray-400" />
+                <h3 className="text-2xl font-light text-center">What industry are you in?</h3>
+              </div>
               <div className="grid grid-cols-2 gap-4">
-                {industries.map((industry) => (
-                  <div
-                    key={industry.id}
-                    className={`minimal-card p-6 cursor-pointer rounded-lg ${
-                      formData.industry === industry.id 
-                        ? 'border-black bg-gray-50' 
-                        : 'hover:border-gray-300'
-                    }`}
-                    onClick={() => setFormData({...formData, industry: industry.id, focus: ''})}
-                  >
-                    <h4 className="font-medium text-center">{industry.name}</h4>
-                  </div>
-                ))}
+                {industries.map((industry) => {
+                  const IconComponent = industry.icon;
+                  return (
+                    <div
+                      key={industry.id}
+                      className={`minimal-card p-6 cursor-pointer rounded-lg ${
+                        formData.industry === industry.id 
+                          ? 'border-black bg-gray-50' 
+                          : 'hover:border-gray-300'
+                      }`}
+                      onClick={() => setFormData({...formData, industry: industry.id, focus: ''})}
+                    >
+                      <div className="flex flex-col items-center gap-3">
+                        <IconComponent className="w-8 h-8 text-gray-600" />
+                        <h4 className="font-medium text-center">{industry.name}</h4>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -242,21 +336,30 @@ const SchedulingForm = () => {
           {/* Step 2: Focus Area */}
           {currentStep === 2 && (
             <div>
-              <h3 className="text-2xl font-light mb-8 text-center">What's your focus area?</h3>
+              <div className="flex items-center justify-center gap-3 mb-8">
+                <Target className="w-6 h-6 text-gray-400" />
+                <h3 className="text-2xl font-light text-center">What's your focus area?</h3>
+              </div>
               <div className="space-y-3">
-                {industries.find(i => i.id === formData.industry)?.subcategories.map((sub) => (
-                  <div
-                    key={sub}
-                    className={`minimal-card p-4 cursor-pointer rounded-lg ${
-                      formData.focus === sub
-                        ? 'border-black bg-gray-50'
-                        : 'hover:border-gray-300'
-                    }`}
-                    onClick={() => setFormData({...formData, focus: sub})}
-                  >
-                    <h4 className="font-medium">{sub}</h4>
-                  </div>
-                ))}
+                {industries.find(i => i.id === formData.industry)?.subcategories.map((sub) => {
+                  const IconComponent = focusIcons[sub] || BookOpen;
+                  return (
+                    <div
+                      key={sub}
+                      className={`minimal-card p-4 cursor-pointer rounded-lg ${
+                        formData.focus === sub
+                          ? 'border-black bg-gray-50'
+                          : 'hover:border-gray-300'
+                      }`}
+                      onClick={() => setFormData({...formData, focus: sub})}
+                    >
+                      <div className="flex items-center gap-3">
+                        <IconComponent className="w-5 h-5 text-gray-400" />
+                        <h4 className="font-medium">{sub}</h4>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
             </div>
           )}
@@ -264,9 +367,12 @@ const SchedulingForm = () => {
           {/* Step 3: Time Preference */}
           {currentStep === 3 && (
             <div>
-              <h3 className="text-2xl font-light mb-8 text-center">When do you prefer to learn?</h3>
+              <div className="flex items-center justify-center gap-3 mb-8">
+                <Clock className="w-6 h-6 text-gray-400" />
+                <h3 className="text-2xl font-light text-center">When do you prefer to learn?</h3>
+              </div>
               <div className="space-y-3">
-                {['Morning (9AM - 12PM)', 'Afternoon (12PM - 5PM)', 'Evening (5PM - 8PM)'].map((time) => (
+                {Object.entries(timePreferenceIcons).map(([time, IconComponent]) => (
                   <div
                     key={time}
                     className={`minimal-card p-4 cursor-pointer rounded-lg ${
@@ -277,7 +383,7 @@ const SchedulingForm = () => {
                     onClick={() => setFormData({...formData, timePreference: time})}
                   >
                     <div className="flex items-center gap-3">
-                      <Clock className="w-5 h-5 text-gray-400" />
+                      <IconComponent className="w-5 h-5 text-gray-400" />
                       <h4 className="font-medium">{time}</h4>
                     </div>
                   </div>
@@ -289,7 +395,10 @@ const SchedulingForm = () => {
           {/* Step 4: Availability */}
           {currentStep === 4 && (
             <div>
-              <h3 className="text-2xl font-light mb-8 text-center">Select your available times</h3>
+              <div className="flex items-center justify-center gap-3 mb-8">
+                <Calendar className="w-6 h-6 text-gray-400" />
+                <h3 className="text-2xl font-light text-center">Select your available times</h3>
+              </div>
               <div className="grid grid-cols-2 gap-3">
                 {timeSlots.map((time) => (
                   <div
@@ -301,15 +410,21 @@ const SchedulingForm = () => {
                     }`}
                     onClick={() => handleAvailabilityToggle(time)}
                   >
-                    <div className="text-sm font-medium text-center">{time}</div>
+                    <div className="flex items-center justify-center gap-2">
+                      <Clock className="w-4 h-4 text-gray-400" />
+                      <div className="text-sm font-medium text-center">{time}</div>
+                    </div>
                   </div>
                 ))}
               </div>
               {formData.availability.length > 0 && (
                 <div className="mt-6 text-center">
-                  <p className="text-sm text-gray-500">
-                    {formData.availability.length} time slot{formData.availability.length > 1 ? 's' : ''} selected
-                  </p>
+                  <div className="flex items-center justify-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-gray-400" />
+                    <p className="text-sm text-gray-500">
+                      {formData.availability.length} time slot{formData.availability.length > 1 ? 's' : ''} selected
+                    </p>
+                  </div>
                 </div>
               )}
             </div>
