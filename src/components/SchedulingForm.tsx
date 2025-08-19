@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -447,7 +448,7 @@ const SchedulingForm = () => {
               disabled={!canProceed()}
               className="minimal-button flex items-center gap-2 px-6 py-2 rounded"
             >
-              {currentStep === totalSteps ? 'Find Sessions' : 'Next'}
+              {currentStep === totalSteps ? 'Generate Schedule' : 'Next'}
               <ArrowRight className="w-4 h-4" />
             </Button>
           </div>
