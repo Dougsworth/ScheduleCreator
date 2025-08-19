@@ -5,45 +5,40 @@
 
 @layer base {
   :root {
-    /* Core brand colors */
-    --primary: 220 85% 55%;
-    --primary-foreground: 0 0% 100%;
-    --secondary: 220 15% 95%;
-    --secondary-foreground: 220 85% 15%;
+    /* Minimalist black & white palette */
+    --primary: 0 0% 9%;
+    --primary-foreground: 0 0% 98%;
+    --secondary: 0 0% 96%;
+    --secondary-foreground: 0 0% 9%;
     
     /* Neutral palette */
     --background: 0 0% 100%;
-    --foreground: 220 15% 15%;
-    --muted: 220 15% 96%;
-    --muted-foreground: 220 10% 45%;
+    --foreground: 0 0% 9%;
+    --muted: 0 0% 96%;
+    --muted-foreground: 0 0% 45%;
     
     /* Interactive elements */
-    --accent: 220 85% 60%;
-    --accent-foreground: 0 0% 100%;
-    --border: 220 15% 90%;
-    --input: 220 15% 96%;
-    --ring: 220 85% 55%;
+    --accent: 0 0% 15%;
+    --accent-foreground: 0 0% 98%;
+    --border: 0 0% 89%;
+    --input: 0 0% 96%;
+    --ring: 0 0% 9%;
     
-    /* Status colors */
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-    --destructive: 0 84% 60%;
-    --destructive-foreground: 0 0% 100%;
+    /* Status colors - minimal */
+    --success: 0 0% 9%;
+    --success-foreground: 0 0% 98%;
+    --warning: 0 0% 9%;
+    --warning-foreground: 0 0% 98%;
+    --destructive: 0 0% 9%;
+    --destructive-foreground: 0 0% 98%;
     
     /* Card and surfaces */
     --card: 0 0% 100%;
-    --card-foreground: 220 15% 15%;
+    --card-foreground: 0 0% 9%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 15% 15%;
+    --popover-foreground: 0 0% 9%;
     
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(220 85% 55%) 0%, hsl(260 85% 65%) 100%);
-    --gradient-secondary: linear-gradient(135deg, hsl(220 15% 96%) 0%, hsl(220 15% 92%) 100%);
-    --gradient-accent: linear-gradient(135deg, hsl(220 85% 60%) 0%, hsl(200 85% 70%) 100%);
-    
-    --radius: 0.75rem;
+    --radius: 0.5rem;
   }
 }
 
@@ -54,41 +49,37 @@
 
   body {
     @apply bg-background text-foreground font-sans antialiased;
-    background: linear-gradient(135deg, hsl(220 85% 55%) 0%, hsl(260 85% 65%) 100%);
+    background: hsl(0 0% 100%);
     min-height: 100vh;
   }
 }
 
 @layer components {
-  .gradient-primary {
-    background: var(--gradient-primary);
-  }
-  
-  .gradient-secondary {
-    background: var(--gradient-secondary);
-  }
-  
-  .gradient-accent {
-    background: var(--gradient-accent);
-  }
-  
-  .glass-card {
-    @apply bg-white/95 backdrop-blur-sm border border-white/20 shadow-xl;
+  .minimal-card {
+    @apply bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300;
   }
   
   .step-indicator {
-    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300;
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 border;
   }
   
   .step-indicator.active {
-    @apply bg-primary text-primary-foreground shadow-lg;
+    @apply bg-black text-white border-black;
   }
   
   .step-indicator.completed {
-    @apply bg-success text-success-foreground;
+    @apply bg-black text-white border-black;
   }
   
   .step-indicator.inactive {
-    @apply bg-muted text-muted-foreground;
+    @apply bg-white text-gray-400 border-gray-200;
+  }
+  
+  .minimal-button {
+    @apply bg-black text-white hover:bg-gray-800 transition-colors duration-200 border border-black;
+  }
+  
+  .minimal-button-outline {
+    @apply bg-white text-black border border-gray-200 hover:border-black hover:bg-gray-50 transition-all duration-200;
   }
 }
