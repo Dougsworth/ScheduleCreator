@@ -1,0 +1,18 @@
+# Environment Configuration for Session Booking API
+
+# Supabase Configuration
+SUPABASE_URL=your_supabase_project_url_here
+SUPABASE_ANON_KEY=your_supabase_anon_key_here
+
+# OpenAI Configuration (for AI-powered schedule optimization)
+OPENAI_API_KEY=your_openai_api_key_here
+
+# Server Configuration
+PORT=3000
+
+# Instructions:
+# 1. Copy this file to .env
+# 2. Replace the placeholder values with your actual keys
+# 3. Get OpenAI API key from: https://platform.openai.com/api-keys
+# 4. Get Supabase keys from your Supabase project dashboard
+# 5. Restart the server after adding the keys

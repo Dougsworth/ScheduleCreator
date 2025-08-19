@@ -54,17 +54,160 @@
   }
 }
 
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in-left {
+  from {
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes bounce-in {
+  0% {
+    opacity: 0;
+    transform: scale(0.3);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+  70% {
+    transform: scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes skeleton-pulse {
+  0% {
+    background-color: hsl(0 0% 94%);
+  }
+  50% {
+    background-color: hsl(0 0% 96%);
+  }
+  100% {
+    background-color: hsl(0 0% 94%);
+  }
+}
+
+@keyframes ripple {
+  to {
+    transform: scale(4);
+    opacity: 0;
+  }
+}
+
+@keyframes success-check {
+  0% {
+    transform: scale(0) rotate(0deg);
+    opacity: 0;
+  }
+  50% {
+    transform: scale(1.1) rotate(180deg);
+    opacity: 1;
+  }
+  100% {
+    transform: scale(1) rotate(360deg);
+    opacity: 1;
+  }
+}
+
+@keyframes gentle-shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-5px);
+  }
+  75% {
+    transform: translateX(5px);
+  }
+}
+
+@keyframes slide-out-left {
+  from {
+    opacity: 1;
+    transform: translateX(0);
+  }
+  to {
+    opacity: 0;
+    transform: translateX(-100px);
+  }
+}
+
+@keyframes slide-in-right {
+  from {
+    opacity: 0;
+    transform: translateX(100px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes progress-fill {
+  from {
+    width: 0%;
+  }
+  to {
+    width: var(--progress-width);
+  }
+}
+
 @layer components {
   .minimal-card {
-    @apply bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300;
+    @apply bg-white border border-gray-100 shadow-sm hover:shadow-md transition-all duration-300 transform hover:scale-[1.02] relative overflow-hidden;
+  }
+  
+  .minimal-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.5s;
+  }
+  
+  .minimal-card:hover::before {
+    left: 100%;
   }
   
   .step-indicator {
-    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 border;
+    @apply w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium transition-all duration-300 border relative overflow-hidden;
   }
   
   .step-indicator.active {
     @apply bg-black text-white border-black;
+    animation: bounce-in 0.6s cubic-bezier(0.68, -0.55, 0.265, 1.55);
   }
   
   .step-indicator.completed {
@@ -76,10 +219,140 @@
   }
   
   .minimal-button {
-    @apply bg-black text-white hover:bg-gray-800 transition-colors duration-200 border border-black;
+    @apply bg-black text-white hover:bg-gray-800 transition-all duration-200 border border-black relative overflow-hidden;
+    transform: translateY(0);
+  }
+  
+  .minimal-button:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
+  }
+  
+  .minimal-button:active {
+    transform: translateY(0);
+    transition-duration: 0.1s;
   }
   
   .minimal-button-outline {
     @apply bg-white text-black border border-gray-200 hover:border-black hover:bg-gray-50 transition-all duration-200;
+    transform: translateY(0);
+  }
+  
+  .minimal-button-outline:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+
+  /* Animation classes */
+  .fade-in-up {
+    animation: fade-in-up 0.6s ease-out forwards;
+  }
+  
+  .slide-in-left {
+    animation: slide-in-left 0.5s ease-out forwards;
+  }
+  
+  .bounce-in {
+    animation: bounce-in 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  }
+  
+  .skeleton-pulse {
+    animation: skeleton-pulse 2s ease-in-out infinite;
+  }
+  
+  .hover-scale {
+    transition: transform 0.2s ease-in-out;
+  }
+  
+  .hover-scale:hover {
+    transform: scale(1.05);
+  }
+  
+  .button-press {
+    position: relative;
+    overflow: hidden;
+  }
+  
+  .button-press::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 0;
+    height: 0;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.3);
+    transition: width 0.6s, height 0.6s;
+    transform: translate(-50%, -50%);
+  }
+  
+  .button-press:active::before {
+    width: 300px;
+    height: 300px;
+  }
+  
+  .success-check {
+    animation: success-check 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  }
+  
+  .gentle-shake {
+    animation: gentle-shake 0.5s ease-in-out;
+  }
+  
+  .slide-out-left {
+    animation: slide-out-left 0.3s ease-in forwards;
+  }
+  
+  .slide-in-right {
+    animation: slide-in-right 0.4s ease-out forwards;
+  }
+  
+  .scale-in {
+    animation: scale-in 0.5s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards;
+  }
+  
+  .progress-fill {
+    animation: progress-fill 0.6s ease-out forwards;
+  }
+  
+  .pulse-subtle {
+    animation: pulse 2s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  }
+  
+  .glow-on-hover:hover {
+    box-shadow: 0 0 20px rgba(0, 0, 0, 0.1);
+    transition: box-shadow 0.3s ease-in-out;
+  }
+
+  /* Staggered animations */
+  .stagger-1 { animation-delay: 0.1s; }
+  .stagger-2 { animation-delay: 0.2s; }
+  .stagger-3 { animation-delay: 0.3s; }
+  .stagger-4 { animation-delay: 0.4s; }
+  .stagger-5 { animation-delay: 0.5s; }
+  .stagger-6 { animation-delay: 0.6s; }
+
+  /* Loading skeleton */
+  .skeleton {
+    @apply bg-gray-200 rounded animate-pulse;
+  }
+  
+  .skeleton-text {
+    @apply h-4 bg-gray-200 rounded animate-pulse mb-2;
+  }
+  
+  .skeleton-title {
+    @apply h-6 bg-gray-200 rounded animate-pulse mb-3;
+  }
+}
+
+/* Respect reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
