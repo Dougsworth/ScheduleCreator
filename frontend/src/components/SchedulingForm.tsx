@@ -108,7 +108,7 @@ const timeSlots = [
   '4:00 PM - 5:00 PM'
 ];
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = 'http://localhost:3001/api';
 
 const formatDateTime = (dateTime: string) => {
   const date = new Date(dateTime);
@@ -138,14 +138,50 @@ const SchedulingForm = () => {
   const [showResults, setShowResults] = useState(false);
   const [sessions, setSessions] = useState<Session[]>([]);
   const [loading, setLoading] = useState(false);
-  const [selectedSessions, setSelectedSessions] = useState<number[]>([]);
-  const [bookingId, setBookingId] = useState<string | null>(null);
+  const [generatedTimetable, setGeneratedTimetable] = useState<Session[]>([]);
+  const [timetableAccepted, setTimetableAccepted] = useState<boolean | null>(null);
 
   const totalSteps = 4;
   const progress = (currentStep / totalSteps) * 100;
 
-  const fetchRecommendations = async () => {
+  const generateTimetable = async () => {
     setLoading(true);
+    try {
+      const response = await fetch(`${API_BASE_URL}/generate-timetable`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          industry: formData.industry,
+          focus: [formData.focus],
+          timePreference: formData.timePreference,
+          availability: formData.availability,
+          preferences: {
+            industry: formData.industry,
+            focusAreas: [formData.focus],
+            timeSlots: formData.availability
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        // Fallback to recommendations endpoint if timetable endpoint doesn't exist
+        return fetchRecommendations();
+      }
+
+      const data = await response.json();
+      setGeneratedTimetable(data.timetable || data.items || []);
+    } catch (error) {
+      console.error('Error generating timetable:', error);
+      // Fallback to existing recommendations
+      fetchRecommendations();
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const fetchRecommendations = async () => {
     try {
       const response = await fetch(`${API_BASE_URL}/recommendations`, {
         method: 'POST',
@@ -159,7 +195,7 @@ const SchedulingForm = () => {
             start: new Date().toISOString(),
             end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString()
           } : undefined,
-          topK: 10,
+          topK: formData.availability.length || 5,
           useLLM: true
         }),
       });
@@ -169,57 +205,57 @@ const SchedulingForm = () => {
       }
 
       const data = await response.json();
-      setSessions(data.items || []);
+      // Map the sessions to fit selected time slots
+      const mappedTimetable = mapSessionsToTimeSlots(data.items || [], formData.availability);
+      setGeneratedTimetable(mappedTimetable);
     } catch (error) {
       console.error('Error fetching recommendations:', error);
-      setSessions([]);
-    } finally {
-      setLoading(false);
+      setGeneratedTimetable([]);
     }
   };
 
-  const bookSelectedSessions = async () => {
-    if (selectedSessions.length === 0) return;
+  const mapSessionsToTimeSlots = (sessions: Session[], timeSlots: string[]): Session[] => {
+    return timeSlots.map((slot, index) => {
+      const session = sessions[index % sessions.length] || sessions[0];
+      if (!session) return null;
+      
+      // Create a new session mapped to the selected time slot
+      return {
+        ...session,
+        id: index + 1000, // Unique ID for timetable
+        start: convertTimeSlotToDateTime(slot),
+        end: convertTimeSlotToDateTime(slot, true), // Add 1 hour
+        title: session.title || `Session ${index + 1}`,
+        description: session.description || `Scheduled for your preferred time: ${slot}`
+      };
+    }).filter(Boolean) as Session[];
+  };
 
-    setLoading(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/book`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          sessionIds: selectedSessions,
-          userDetails: {
-            name: 'User',
-            email: 'user@example.com'
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to book sessions');
-      }
-
-      const data = await response.json();
-      setBookingId(data.bookingId);
-    } catch (error) {
-      console.error('Error booking sessions:', error);
-    } finally {
-      setLoading(false);
-    }
+  const convertTimeSlotToDateTime = (timeSlot: string, isEndTime = false): string => {
+    const today = new Date();
+    const [startTime] = timeSlot.split(' - ');
+    const [time, period] = startTime.split(' ');
+    let [hours, minutes] = time.split(':').map(Number);
+    
+    if (period === 'PM' && hours !== 12) hours += 12;
+    if (period === 'AM' && hours === 12) hours = 0;
+    
+    if (isEndTime) hours += 1; // Add 1 hour for end time
+    
+    today.setHours(hours, minutes || 0, 0, 0);
+    return today.toISOString();
   };
 
   const downloadCalendar = () => {
-    if (!bookingId) return;
-    window.open(`${API_BASE_URL}/ics/${bookingId}`, '_blank');
+    // Future implementation for downloading accepted timetable
+    alert('Calendar download feature will be implemented soon!');
   };
 
   const handleNext = () => {
     if (currentStep < totalSteps) {
       setCurrentStep(currentStep + 1);
     } else {
-      fetchRecommendations();
+      generateTimetable();
       setShowResults(true);
     }
   };
@@ -239,13 +275,7 @@ const SchedulingForm = () => {
     }));
   };
 
-  const toggleSessionSelection = (sessionId: number) => {
-    setSelectedSessions(prev => 
-      prev.includes(sessionId)
-        ? prev.filter(id => id !== sessionId)
-        : [...prev, sessionId]
-    );
-  };
+  // Removed toggleSessionSelection as we no longer need session selection
 
   const canProceed = () => {
     switch (currentStep) {
@@ -264,8 +294,8 @@ const SchedulingForm = () => {
           <div className="w-full max-w-4xl">
             <div className="text-center mb-12 fade-in-up">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-black mx-auto mb-4"></div>
-              <h1 className="text-4xl font-light mb-4 text-black">Finding Your Sessions</h1>
-              <p className="text-gray-500 text-lg">Curating the perfect matches...</p>
+              <h1 className="text-4xl font-light mb-4 text-black">Generating Your Timetable</h1>
+              <p className="text-gray-500 text-lg">Creating a personalized schedule for your selected times...</p>
             </div>
             
             {/* Skeleton loading cards */}
@@ -306,14 +336,18 @@ const SchedulingForm = () => {
         <div className="w-full max-w-4xl">
           <div className="text-center mb-12">
             <h1 className="text-4xl font-light mb-4 text-black">
-              Your Sessions
+              {timetableAccepted === true ? 'Your Schedule is Confirmed!' : 
+               timetableAccepted === false ? 'Generate New Schedule?' : 
+               'Your Personalized Timetable'}
             </h1>
             <p className="text-gray-500 text-lg">
-              Curated based on your preferences
+              {timetableAccepted === true ? 'Your timetable has been saved and is ready to use' : 
+               timetableAccepted === false ? 'Let\'s create a new schedule that better fits your needs' : 
+               'Based on your selected time slots and preferences'}
             </p>
           </div>
           
-          {sessions.length === 0 ? (
+          {generatedTimetable.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 mb-4">No sessions found matching your criteria.</p>
               <Button 
@@ -328,17 +362,17 @@ const SchedulingForm = () => {
           ) : (
             <>
               <div className="space-y-6">
-                {sessions.map((session, index) => {
+                {generatedTimetable.map((session, index) => {
                   const { date, time } = formatDateTime(session.start);
-                  const isSelected = selectedSessions.includes(session.id);
+                  const timeSlot = formData.availability[index] || `${time}`;
                   
                   return (
                     <div 
                       key={session.id} 
-                      className={`minimal-card p-8 rounded-lg cursor-pointer transition-all hover-scale fade-in-up stagger-${Math.floor(index / 2) + 1} ${
-                        isSelected ? 'border-black bg-gray-50 scale-in' : 'hover:border-gray-300'
+                      className={`minimal-card p-8 rounded-lg transition-all hover-scale fade-in-up stagger-${Math.floor(index / 2) + 1} ${
+                        timetableAccepted === null ? 'hover:border-gray-300' : 
+                        timetableAccepted ? 'border-green-500 bg-green-50' : 'border-gray-200 opacity-75'
                       }`}
-                      onClick={() => toggleSessionSelection(session.id)}
                     >
                       <div className="flex items-start justify-between">
                         <div className="flex-1">
@@ -360,7 +394,7 @@ const SchedulingForm = () => {
                             </div>
                             <div className="flex items-center gap-2">
                               <Clock className="w-4 h-4" />
-                              {time}
+                              {timeSlot}
                             </div>
                             {session.room && (
                               <div className="flex items-center gap-2">
@@ -382,8 +416,8 @@ const SchedulingForm = () => {
                           )}
                         </div>
                         <div className="flex items-center gap-2">
-                          {isSelected && (
-                            <CheckCircle2 className="w-5 h-5 text-green-600" />
+                          {timetableAccepted === true && (
+                            <CheckCircle2 className="w-5 h-5 text-green-600 success-check" />
                           )}
                         </div>
                       </div>
@@ -396,45 +430,79 @@ const SchedulingForm = () => {
                 <Button 
                   variant="outline" 
                   className="minimal-button-outline px-6 py-2 rounded"
-                  onClick={() => {setShowResults(false); setCurrentStep(1); setSelectedSessions([]);}}
+                  onClick={() => {setShowResults(false); setCurrentStep(1); setTimetableAccepted(null);}}
                 >
                   <ArrowLeft className="w-4 h-4 mr-2" />
-                  Start Over
+                  {timetableAccepted === false ? 'Try Again' : 'Start Over'}
                 </Button>
                 
-                <div className="flex gap-4">
-                  {bookingId && (
+                {timetableAccepted === null && (
+                  <div className="flex gap-4">
+                    <Button
+                      variant="outline"
+                      className="minimal-button-outline px-6 py-2 rounded button-press"
+                      onClick={() => setTimetableAccepted(false)}
+                    >
+                      ✕ Refuse Schedule
+                    </Button>
+                    
+                    <Button
+                      className="minimal-button px-8 py-2 rounded button-press bg-green-600 hover:bg-green-700 border-green-600"
+                      onClick={() => setTimetableAccepted(true)}
+                    >
+                      <div className="flex items-center gap-2">
+                        <CheckCircle2 className="w-4 h-4" />
+                        Accept Schedule
+                      </div>
+                    </Button>
+                  </div>
+                )}
+                
+                {timetableAccepted === true && (
+                  <div className="flex gap-4">
                     <Button 
                       variant="outline"
                       className="minimal-button-outline px-6 py-2 rounded"
-                      onClick={downloadCalendar}
+                      onClick={() => {
+                        // Here you could implement calendar download
+                        alert('Calendar download feature coming soon!');
+                      }}
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Download Calendar
                     </Button>
-                  )}
-                  
-                  <Button
-                    className={`minimal-button px-8 py-2 rounded button-press ${bookingId ? 'bg-green-600 hover:bg-green-700 border-green-600' : ''}`}
-                    disabled={selectedSessions.length === 0 || loading}
-                    onClick={bookSelectedSessions}
-                  >
-                    {bookingId ? (
+                    
+                    <Button
+                      className="minimal-button px-8 py-2 rounded button-press bg-green-600 hover:bg-green-700 border-green-600"
+                      disabled
+                    >
                       <div className="flex items-center gap-2">
                         <CheckCircle2 className="w-4 h-4 success-check" />
-                        Booked!
+                        Schedule Accepted!
                       </div>
-                    ) : (
-                      `Book ${selectedSessions.length} Session${selectedSessions.length !== 1 ? 's' : ''}`
-                    )}
-                  </Button>
-                </div>
+                    </Button>
+                  </div>
+                )}
+                
+                {timetableAccepted === false && (
+                  <div className="text-center">
+                    <Button
+                      className="minimal-button px-8 py-2 rounded button-press"
+                      onClick={() => {
+                        setTimetableAccepted(null);
+                        generateTimetable();
+                      }}
+                    >
+                      Generate New Schedule
+                    </Button>
+                  </div>
+                )}
               </div>
               
-              {selectedSessions.length > 0 && !bookingId && (
+              {timetableAccepted === null && (
                 <div className="text-center mt-6">
                   <p className="text-sm text-gray-500">
-                    Click on sessions to select them, then book to generate your calendar
+                    Review your personalized timetable and choose to accept or refuse
                   </p>
                 </div>
               )}
@@ -627,7 +695,7 @@ const SchedulingForm = () => {
                 !canProceed() ? 'opacity-50 cursor-not-allowed' : ''
               }`}
             >
-              {currentStep === totalSteps ? 'Generate Schedule' : 'Next'}
+              {currentStep === totalSteps ? 'Generate Timetable' : 'Next'}
               <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
             </Button>
           </div>
