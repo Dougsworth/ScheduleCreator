@@ -147,42 +147,6 @@ const SchedulingForm = () => {
   const generateTimetable = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/generate-timetable`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          industry: formData.industry,
-          focus: [formData.focus],
-          timePreference: formData.timePreference,
-          availability: formData.availability,
-          preferences: {
-            industry: formData.industry,
-            focusAreas: [formData.focus],
-            timeSlots: formData.availability
-          }
-        }),
-      });
-
-      if (!response.ok) {
-        // Fallback to recommendations endpoint if timetable endpoint doesn't exist
-        return fetchRecommendations();
-      }
-
-      const data = await response.json();
-      setGeneratedTimetable(data.timetable || data.items || []);
-    } catch (error) {
-      console.error('Error generating timetable:', error);
-      // Fallback to existing recommendations
-      fetchRecommendations();
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchRecommendations = async () => {
-    try {
       const response = await fetch(`${API_BASE_URL}/recommendations`, {
         method: 'POST',
         headers: {
@@ -209,20 +173,27 @@ const SchedulingForm = () => {
       const mappedTimetable = mapSessionsToTimeSlots(data.items || [], formData.availability);
       setGeneratedTimetable(mappedTimetable);
     } catch (error) {
-      console.error('Error fetching recommendations:', error);
+      console.error('Error generating timetable:', error);
       setGeneratedTimetable([]);
+    } finally {
+      setLoading(false);
     }
   };
 
+
   const mapSessionsToTimeSlots = (sessions: Session[], timeSlots: string[]): Session[] => {
+    if (!sessions || sessions.length === 0) {
+      return [];
+    }
+    
     return timeSlots.map((slot, index) => {
-      const session = sessions[index % sessions.length] || sessions[0];
+      const session = sessions[index % sessions.length];
       if (!session) return null;
       
       // Create a new session mapped to the selected time slot
       return {
         ...session,
-        id: index + 1000, // Unique ID for timetable
+        id: session.id || index + 1000, // Keep original ID if available
         start: convertTimeSlotToDateTime(slot),
         end: convertTimeSlotToDateTime(slot, true), // Add 1 hour
         title: session.title || `Session ${index + 1}`,
@@ -246,9 +217,108 @@ const SchedulingForm = () => {
     return today.toISOString();
   };
 
-  const downloadCalendar = () => {
-    // Future implementation for downloading accepted timetable
-    alert('Calendar download feature will be implemented soon!');
+  const generateCalendarRows = () => {
+    // Create time slots from 9 AM to 5 PM
+    const allTimeSlots = [
+      '9:00 AM - 10:00 AM',
+      '10:00 AM - 11:00 AM', 
+      '11:00 AM - 12:00 PM',
+      '12:00 PM - 1:00 PM',
+      '1:00 PM - 2:00 PM',
+      '2:00 PM - 3:00 PM',
+      '3:00 PM - 4:00 PM',
+      '4:00 PM - 5:00 PM'
+    ];
+
+    return allTimeSlots.map(timeSlot => {
+      // Check if this time slot has any sessions
+      const userSelectedThisSlot = formData.availability.includes(timeSlot);
+      const sessionForThisSlot = generatedTimetable.find((session, index) => 
+        formData.availability[index] === timeSlot
+      );
+
+      // Create 5 days (Monday to Friday)
+      const days = Array(5).fill(null).map((_, dayIndex) => {
+        if (userSelectedThisSlot && sessionForThisSlot) {
+          // Distribute sessions across different days for variety
+          const shouldShowSession = dayIndex === (generatedTimetable.indexOf(sessionForThisSlot) % 5);
+          if (shouldShowSession) {
+            return {
+              title: sessionForThisSlot.title,
+              instructor: sessionForThisSlot.instructor,
+              room: sessionForThisSlot.room,
+              score: sessionForThisSlot.score,
+              tags: sessionForThisSlot.tags
+            };
+          }
+        }
+        return null;
+      });
+
+      return {
+        timeSlot,
+        days
+      };
+    });
+  };
+
+  const downloadCalendar = async () => {
+    if (!generatedTimetable || generatedTimetable.length === 0) {
+      alert('No timetable to download. Please generate a timetable first.');
+      return;
+    }
+
+    try {
+      // Create a booking first to get the ICS download URL
+      const response = await fetch(`${API_BASE_URL}/book`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          sessionIds: generatedTimetable.map(session => session.id),
+          userDetails: {
+            name: 'User',
+            email: 'user@example.com',
+            preferences: {
+              industry: formData.industry,
+              focus: formData.focus,
+              timePreference: formData.timePreference
+            }
+          }
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to create booking for calendar download');
+      }
+
+      const bookingData = await response.json();
+      
+      // Download the ICS file
+      const icsResponse = await fetch(`${API_BASE_URL.replace('/api', '')}${bookingData.icsUrl}`);
+      
+      if (!icsResponse.ok) {
+        throw new Error('Failed to download calendar file');
+      }
+
+      const icsContent = await icsResponse.text();
+      
+      // Create download
+      const blob = new Blob([icsContent], { type: 'text/calendar' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = `my-schedule-${new Date().toISOString().split('T')[0]}.ics`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(url);
+      
+    } catch (error) {
+      console.error('Error downloading calendar:', error);
+      alert('Failed to download calendar. Please try again.');
+    }
   };
 
   const handleNext = () => {
@@ -361,69 +431,105 @@ const SchedulingForm = () => {
             </div>
           ) : (
             <>
-              <div className="space-y-6">
-                {generatedTimetable.map((session, index) => {
-                  const { date, time } = formatDateTime(session.start);
-                  const timeSlot = formData.availability[index] || `${time}`;
-                  
-                  return (
-                    <div 
-                      key={session.id} 
-                      className={`minimal-card p-8 rounded-lg transition-all hover-scale fade-in-up stagger-${Math.floor(index / 2) + 1} ${
-                        timetableAccepted === null ? 'hover:border-gray-300' : 
-                        timetableAccepted ? 'border-green-500 bg-green-50' : 'border-gray-200 opacity-75'
-                      }`}
-                    >
-                      <div className="flex items-start justify-between">
-                        <div className="flex-1">
-                          <div className="flex items-center gap-4 mb-3">
-                            <h3 className="text-2xl font-light">{session.title}</h3>
-                            {session.score && (
-                              <span className="text-xs bg-gray-100 px-2 py-1 rounded text-gray-600">
-                                {Math.round(session.score * 100)}% MATCH
-                              </span>
-                            )}
-                          </div>
-                          {session.instructor && (
-                            <p className="text-gray-500 mb-4">with {session.instructor}</p>
-                          )}
-                          <div className="flex items-center gap-6 text-sm text-gray-500 mb-6">
-                            <div className="flex items-center gap-2">
-                              <Calendar className="w-4 h-4" />
-                              {date}
-                            </div>
-                            <div className="flex items-center gap-2">
-                              <Clock className="w-4 h-4" />
-                              {timeSlot}
-                            </div>
-                            {session.room && (
-                              <div className="flex items-center gap-2">
-                                📍 {session.room}
-                              </div>
-                            )}
-                          </div>
-                          {session.description && (
-                            <p className="text-gray-600 mb-4 text-sm">{session.description}</p>
-                          )}
-                          {session.tags && session.tags.length > 0 && (
-                            <div className="flex gap-3">
-                              {session.tags.map((tag) => (
-                                <span key={tag} className="text-xs px-3 py-1 border border-gray-200 rounded-full text-gray-600">
-                                  {tag}
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                        <div className="flex items-center gap-2">
-                          {timetableAccepted === true && (
-                            <CheckCircle2 className="w-5 h-5 text-green-600 success-check" />
-                          )}
-                        </div>
-                      </div>
+              {/* Calendar Table */}
+              <div className={`minimal-card rounded-lg overflow-hidden fade-in-up ${
+                timetableAccepted === true ? 'border-green-500 bg-green-50' : 
+                timetableAccepted === false ? 'border-gray-200 opacity-75' : ''
+              }`}>
+                {/* Calendar Header */}
+                <div className="bg-gray-50 border-b border-gray-200 p-4">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-medium text-gray-900">Weekly Schedule</h3>
+                    {timetableAccepted === true && (
+                      <CheckCircle2 className="w-5 h-5 text-green-600 success-check" />
+                    )}
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">Your personalized timetable for this week</p>
+                </div>
+
+                {/* Calendar Grid */}
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Time
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Monday
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Tuesday
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Wednesday
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider border-r border-gray-200">
+                          Thursday
+                        </th>
+                        <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Friday
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {generateCalendarRows().map((row, rowIndex) => (
+                        <tr key={rowIndex} className="hover:bg-gray-50">
+                          <td className="px-4 py-6 whitespace-nowrap text-sm font-medium text-gray-900 border-r border-gray-200 bg-gray-50">
+                            {row.timeSlot}
+                          </td>
+                          {row.days.map((dayContent, dayIndex) => (
+                            <td key={dayIndex} className="px-4 py-6 border-r border-gray-200 last:border-r-0">
+                              {dayContent ? (
+                                <div className={`p-3 rounded-lg border-l-4 ${
+                                  timetableAccepted === true ? 'border-green-400 bg-green-50' : 
+                                  'border-blue-400 bg-blue-50'
+                                }`}>
+                                  <div className="font-medium text-sm text-gray-900 mb-1">
+                                    {dayContent.title}
+                                  </div>
+                                  {dayContent.instructor && (
+                                    <div className="text-xs text-gray-600 mb-1">
+                                      with {dayContent.instructor}
+                                    </div>
+                                  )}
+                                  <div className="text-xs text-gray-500">
+                                    {dayContent.room || 'Online Session'}
+                                  </div>
+                                  {dayContent.score && (
+                                    <div className="text-xs text-blue-600 mt-1">
+                                      {Math.round(dayContent.score * 100)}% match
+                                    </div>
+                                  )}
+                                </div>
+                              ) : (
+                                <div className="h-16 flex items-center justify-center text-gray-400 text-xs">
+                                  Free
+                                </div>
+                              )}
+                            </td>
+                          ))}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Calendar Legend */}
+                <div className="bg-gray-50 border-t border-gray-200 p-4">
+                  <div className="flex items-center gap-6 text-sm">
+                    <div className="flex items-center gap-2">
+                      <div className="w-3 h-3 rounded border-l-4 border-blue-400 bg-blue-50"></div>
+                      <span className="text-gray-600">Scheduled Sessions</span>
                     </div>
-                  );
-                })}
+                    {timetableAccepted === true && (
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded border-l-4 border-green-400 bg-green-50"></div>
+                        <span className="text-gray-600">Confirmed Schedule</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
               </div>
               
               <div className="flex justify-between items-center mt-12">
@@ -463,10 +569,7 @@ const SchedulingForm = () => {
                     <Button 
                       variant="outline"
                       className="minimal-button-outline px-6 py-2 rounded"
-                      onClick={() => {
-                        // Here you could implement calendar download
-                        alert('Calendar download feature coming soon!');
-                      }}
+                      onClick={downloadCalendar}
                     >
                       <Download className="w-4 h-4 mr-2" />
                       Download Calendar
